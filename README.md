@@ -57,6 +57,28 @@ python -m banking_system.main
 The server starts on `http://127.0.0.1:8080`.
 The SQLite database is created at `C:\Users\ayush\bank_regulator_blockchain\regulator.db`.
 
+## Local run scripts
+
+From the project folder on Windows you can use:
+
+```bat
+run_server.bat
+```
+
+That starts the API server at `http://127.0.0.1:8080`.
+
+To run the test suite:
+
+```bat
+run_tests.bat
+```
+
+To start the server and open the admin dashboards in a browser:
+
+```bat
+launch_admin.bat
+```
+
 ## API endpoints
 
 ### Health
@@ -285,3 +307,8 @@ Request body:
 cd C:\Users\ayush\bank_regulator_blockchain
 python -m unittest discover -s tests -v
 ```
+
+## GitHub Actions
+
+The repository includes a GitHub Actions workflow at `.github/workflows/python-tests.yml`.
+It runs the unit test suite automatically on pushes and pull requests to `main`.
