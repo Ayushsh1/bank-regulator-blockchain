@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Drilldown</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 252, 246, 0.94);
+      --ink: #172128;
+      --muted: #5f696d;
+      --line: #d6c7b4;
+      --accent: #8c4020;
+      --safe: #245f59;
+      --warn: #b43d2c;
+      --gold: #c2983a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Palatino Linotype", Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(180, 61, 44, 0.12), transparent 18rem),
+        radial-gradient(circle at 85% 10%, rgba(36, 95, 89, 0.14), transparent 20rem),
+        linear-gradient(150deg, #f5f1e8, #e6dbcd 62%, #ddd0c0);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 56px; }
+    .hero, .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 14px 36px rgba(38, 30, 16, 0.08);
+    }
+    .hero { padding: 28px; display: grid; gap: 10px; }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      letter-spacing: -0.05em;
+      line-height: 0.92;
+    }
+    .hero p, .status { margin: 0; color: var(--muted); }
+    .grid { display: grid; gap: 16px; margin-top: 18px; }
+    .controls { grid-template-columns: 1.3fr 1fr auto; }
+    .stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    .dual { grid-template-columns: 1.1fr 1fr; align-items: start; }
+    .triple { grid-template-columns: repeat(3, 1fr); }
+    .quad { grid-template-columns: repeat(4, 1fr); }
+    .actions-grid { grid-template-columns: repeat(3, 1fr); }
+    .card { padding: 16px; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      color: var(--ink);
+      font: inherit;
+    }
+    textarea, select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      color: var(--ink);
+      font: inherit;
+      resize: vertical;
+      min-height: 46px;
+    }
+    button {
+      border: 0;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff8f1;
+      margin-top: 23px;
+    }
+    .metric-label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .metric-value { margin-top: 8px; font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 0.95; }
+    .section-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .timeline, .bars { display: grid; gap: 10px; }
+    .bar-row { display: grid; grid-template-columns: 120px 1fr 40px; gap: 10px; align-items: center; }
+    .track { height: 14px; background: rgba(214, 199, 180, 0.7); border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; background: linear-gradient(90deg, var(--warn), var(--gold)); border-radius: 999px; }
+    .mini-chart {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      min-height: 180px;
+    }
+    .mini-col { flex: 1; display: grid; gap: 8px; align-items: end; }
+    .mini-bar { background: linear-gradient(180deg, var(--safe), var(--gold)); border-radius: 10px 10px 0 0; min-height: 8px; }
+    .mini-label, .mini-value { text-align: center; font-size: 0.78rem; }
+    .mini-label { color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.76); }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 0.9rem; vertical-align: top; }
+    th { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    code { white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; }
+    .risk-high { color: var(--warn); font-weight: 700; }
+    .risk-mid { color: var(--accent); font-weight: 700; }
+    .risk-low { color: var(--safe); font-weight: 700; }
+    .empty { color: var(--muted); }
+    .inline-status {
+      margin-top: 10px;
+      color: var(--muted);
+      min-height: 1.4rem;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 980px) {
+      .controls, .dual, .triple, .quad, .actions-grid { grid-template-columns: 1fr; }
+      button { margin-top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Bank Drilldown Console</h1>
+      <p>Inspect one supervised bank in full detail: risk score, transaction history, audit activity, sanctions, and recent regulator events tied to that institution.</p>
+      <p class="status" id="status">Provide an admin token and a bank ID to load detail.</p>
+    </section>
+
+    <section class="grid controls">
+      <div class="card">
+        <label for="token">Bearer Token</label>
+        <input id="token" type="password" placeholder="Paste admin token">
+      </div>
+      <div class="card">
+        <label for="bankId">Bank ID</label>
+        <input id="bankId" type="text" placeholder="BANK001">
+      </div>
+      <div class="card">
+        <button id="loadBtn">Load Bank</button>
+      </div>
+    </section>
+
+    <section class="grid stats">
+      <div class="card"><div class="metric-label">Bank</div><div class="metric-value" id="bankName">-</div></div>
+      <div class="card"><div class="metric-label">Risk Score</div><div class="metric-value" id="riskScore">-</div></div>
+      <div class="card"><div class="metric-label">Flagged Exposure</div><div class="metric-value" id="flaggedExposure">-</div></div>
+      <div class="card"><div class="metric-label">Open Audits</div><div class="metric-value" id="openAudits">-</div></div>
+      <div class="card"><div class="metric-label">Penalty Total</div><div class="metric-value" id="penalties">-</div></div>
+    </section>
+
+    <section class="grid dual">
+      <div class="card">
+        <h2 class="section-title">Transaction Timeline</h2>
+        <div class="mini-chart" id="timeline"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Exposure Mix</h2>
+        <div class="bars" id="mixBars"></div>
+      </div>
+    </section>
+
+    <section class="grid actions-grid">
+      <div class="card">
+        <h2 class="section-title">Record Transaction</h2>
+        <label for="txnId">Transaction ID</label>
+        <input id="txnId" type="text" placeholder="TXN-200">
+        <label for="txnCounterparty">Counterparty Bank</label>
+        <input id="txnCounterparty" type="text" placeholder="BANK777">
+        <label for="txnCurrency">Currency</label>
+        <input id="txnCurrency" type="text" placeholder="USD">
+        <label for="txnAmount">Amount</label>
+        <input id="txnAmount" type="number" placeholder="1500000" min="0">
+        <label for="txnType">Type</label>
+        <input id="txnType" type="text" placeholder="cross_border_settlement">
+        <button id="createTxnBtn">Record Transaction</button>
+        <div class="inline-status" id="txnStatus"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Open Audit</h2>
+        <label for="auditId">Audit ID</label>
+        <input id="auditId" type="text" placeholder="AUD-200">
+        <label for="auditReason">Reason</label>
+        <textarea id="auditReason" placeholder="Reason for opening the audit"></textarea>
+        <button id="openAuditBtn">Create Audit</button>
+        <div class="inline-status" id="auditStatus"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Issue Sanction</h2>
+        <label for="sanctionId">Sanction ID</label>
+        <input id="sanctionId" type="text" placeholder="SANC-200">
+        <label for="sanctionPenalty">Penalty Amount</label>
+        <input id="sanctionPenalty" type="number" placeholder="500000" min="0">
+        <label for="sanctionReason">Reason</label>
+        <textarea id="sanctionReason" placeholder="Reason for sanction"></textarea>
+        <button id="issueSanctionBtn">Issue Sanction</button>
+        <div class="inline-status" id="sanctionStatus"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Close Audit</h2>
+        <label for="closeAuditId">Open Audit</label>
+        <select id="closeAuditId">
+          <option value="">Select an open audit</option>
+        </select>
+        <label for="closeFindings">Findings</label>
+        <textarea id="closeFindings" placeholder="Remediation, findings, and regulator note"></textarea>
+        <button id="closeAuditBtn">Close Audit</button>
+        <div class="inline-status" id="closeAuditStatus"></div>
+      </div>
+    </section>
+
+    <section class="grid triple">
+      <div class="card">
+        <h2 class="section-title">Transactions</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Type</th><th>Amount</th><th>Flagged</th><th>Action</th></tr></thead>
+            <tbody id="transactionsBody"><tr><td colspan="5" class="empty">No data.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Audits</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Status</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody id="auditsBody"><tr><td colspan="4" class="empty">No data.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Sanctions</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Penalty</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody id="sanctionsBody"><tr><td colspan="4" class="empty">No data.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h2 class="section-title">Admin Activity Feed</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+          <tbody id="logsBody"><tr><td colspan="4" class="empty">No data.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tokenInput = document.getElementById("token");
+    const bankIdInput = document.getElementById("bankId");
+    const statusEl = document.getElementById("status");
+
+    function formatAmount(value) {
+      return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+
+    function riskClass(score) {
+      if (score >= 70) return "risk-high";
+      if (score >= 35) return "risk-mid";
+      return "risk-low";
+    }
+
+    async function loadBank() {
+      const bankId = bankIdInput.value.trim();
+      if (!bankId) {
+        statusEl.textContent = "Bank ID is required.";
+        return;
+      }
+      statusEl.textContent = "Loading bank detail...";
+      try {
+        const response = await fetch(`/oversight/banks/${encodeURIComponent(bankId)}`, {
+          headers: { "Authorization": `Bearer ${tokenInput.value.trim()}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        renderSummary(data);
+        renderTransactions(data.transactions);
+        renderAudits(data.audits);
+        renderSanctions(data.sanctions);
+        renderLogs(data.recent_logs);
+        renderTimeline(data.transaction_timeline);
+        renderMix(data.summary);
+        renderOpenAuditOptions(data.audits);
+        currentBankId = data.bank.bank_id;
+        statusEl.textContent = `Loaded detail for ${data.bank.bank_id}.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function postJson(path, payload) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${tokenInput.value.trim()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    async function requestApproval(actionType, targetId, payload) {
+      return postJson("/approvals", {
+        action_type: actionType,
+        target_id: targetId,
+        target_bank_id: bankIdInput.value.trim(),
+        payload: payload || {}
+      });
+    }
+
+    function renderSummary(data) {
+      document.getElementById("bankName").textContent = `${data.bank.name} (${data.bank.bank_id})`;
+      const risk = data.summary ? data.summary.risk_score : 0;
+      const riskEl = document.getElementById("riskScore");
+      riskEl.textContent = String(risk);
+      riskEl.className = riskClass(risk);
+      document.getElementById("flaggedExposure").textContent = formatAmount(data.summary?.flagged_exposure || 0);
+      document.getElementById("openAudits").textContent = String(data.summary?.open_audits || 0);
+      document.getElementById("penalties").textContent = formatAmount(data.summary?.total_penalties || 0);
+    }
+
+    function renderTransactions(items) {
+      const body = document.getElementById("transactionsBody");
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty">No transactions for this bank.</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((item) => `
+        <tr>
+          <td>${item.txn_id}</td>
+          <td>${item.txn_type}</td>
+          <td>${formatAmount(item.amount)} ${item.currency}</td>
+          <td>${item.flagged ? "Yes" : "No"}</td>
+          <td><button data-delete-transaction="${item.txn_id}" style="margin-top:0;">Delete</button></td>
+        </tr>
+      `).join("");
+      body.querySelectorAll("[data-delete-transaction]").forEach((button) => {
+        button.addEventListener("click", () => deleteTransaction(button.dataset.deleteTransaction));
+      });
+    }
+
+    function renderAudits(items) {
+      const body = document.getElementById("auditsBody");
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="4" class="empty">No audits for this bank.</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((item) => `
+        <tr>
+          <td>${item.audit_id}</td>
+          <td>${item.status}${item.archived ? " (archived)" : ""}</td>
+          <td>${item.reason}</td>
+          <td>
+            ${!item.archived && item.status === "open" ? `<button data-edit-audit="${item.audit_id}" style="margin-top:0;">Edit</button>` : ""}
+            ${!item.archived ? `<button data-archive-audit="${item.audit_id}" style="margin-top:0;">Archive</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
+      body.querySelectorAll("[data-edit-audit]").forEach((button) => {
+        button.addEventListener("click", () => editAudit(button.dataset.editAudit));
+      });
+      body.querySelectorAll("[data-archive-audit]").forEach((button) => {
+        button.addEventListener("click", () => archiveAudit(button.dataset.archiveAudit));
+      });
+    }
+
+    function renderOpenAuditOptions(items) {
+      const select = document.getElementById("closeAuditId");
+      const openItems = items.filter((item) => item.status === "open");
+      select.innerHTML = '<option value="">Select an open audit</option>' + openItems.map((item) =>
+        `<option value="${item.audit_id}">${item.audit_id} - ${item.reason}</option>`
+      ).join("");
+    }
+
+    function renderSanctions(items) {
+      const body = document.getElementById("sanctionsBody");
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="4" class="empty">No sanctions for this bank.</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((item) => `
+        <tr>
+          <td>${item.sanction_id}</td>
+          <td>${formatAmount(item.penalty_amount)}</td>
+          <td>${item.reason}${item.archived ? " (archived)" : ""}</td>
+          <td>
+            ${!item.archived ? `<button data-edit-sanction="${item.sanction_id}" style="margin-top:0;">Edit</button>` : ""}
+            ${!item.archived ? `<button data-archive-sanction="${item.sanction_id}" style="margin-top:0;">Archive</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
+      body.querySelectorAll("[data-edit-sanction]").forEach((button) => {
+        button.addEventListener("click", () => editSanction(button.dataset.editSanction));
+      });
+      body.querySelectorAll("[data-archive-sanction]").forEach((button) => {
+        button.addEventListener("click", () => archiveSanction(button.dataset.archiveSanction));
+      });
+    }
+
+    function renderLogs(items) {
+      const body = document.getElementById("logsBody");
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="4" class="empty">No recent bank logs.</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((item) => `
+        <tr>
+          <td>${item.timestamp}</td>
+          <td>${item.actor}</td>
+          <td>${item.action}</td>
+          <td><code>${JSON.stringify(item.details, null, 2)}</code></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderTimeline(items) {
+      const chart = document.getElementById("timeline");
+      if (!items.length) {
+        chart.innerHTML = '<div class="empty">No transaction timeline yet.</div>';
+        return;
+      }
+      const max = Math.max(...items.map((item) => item.count), 1);
+      chart.innerHTML = items.map((item) => `
+        <div class="mini-col">
+          <div class="mini-value">${item.count}</div>
+          <div class="mini-bar" style="height:${Math.max(10, (item.count / max) * 130)}px"></div>
+          <div class="mini-label">${item.date}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderMix(summary) {
+      const bars = document.getElementById("mixBars");
+      if (!summary) {
+        bars.innerHTML = '<div class="empty">No summary available.</div>';
+        return;
+      }
+      const rows = [
+        ["Flagged Txns", Number(summary.flagged_transactions)],
+        ["Open Audits", Number(summary.open_audits)],
+        ["Sanctions", Number(summary.sanctions_issued)],
+        ["Risk Score", Number(summary.risk_score)]
+      ];
+      const max = Math.max(...rows.map(([, value]) => value), 1);
+      bars.innerHTML = rows.map(([label, value]) => `
+        <div class="bar-row">
+          <div>${label}</div>
+          <div class="track"><div class="fill" style="width:${(value / max) * 100}%"></div></div>
+          <div>${value}</div>
+        </div>
+      `).join("");
+    }
+
+    async function createTransaction() {
+      const bankId = bankIdInput.value.trim();
+      const status = document.getElementById("txnStatus");
+      if (!bankId) {
+        status.textContent = "Load or enter a bank ID first.";
+        return;
+      }
+      status.textContent = "Recording transaction...";
+      try {
+        await postJson("/transactions", {
+          txn_id: document.getElementById("txnId").value.trim(),
+          bank_id: bankId,
+          counterparty_bank: document.getElementById("txnCounterparty").value.trim(),
+          currency: document.getElementById("txnCurrency").value.trim(),
+          amount: Number(document.getElementById("txnAmount").value || 0),
+          txn_type: document.getElementById("txnType").value.trim()
+        });
+        status.textContent = "Transaction recorded.";
+        await loadBank();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function deleteTransaction(txnId) {
+      if (!window.confirm(`Submit deletion request for transaction ${txnId}? A second admin must approve it.`)) {
+        statusEl.textContent = "Transaction deletion request cancelled.";
+        return;
+      }
+      statusEl.textContent = `Submitting deletion request for ${txnId}...`;
+      try {
+        const response = await requestApproval("delete_transaction", txnId, {});
+        statusEl.textContent = `Deletion request #${response.request_id} created for ${txnId}.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function createAudit() {
+      const bankId = bankIdInput.value.trim();
+      const status = document.getElementById("auditStatus");
+      if (!bankId) {
+        status.textContent = "Load or enter a bank ID first.";
+        return;
+      }
+      status.textContent = "Creating audit...";
+      try {
+        await postJson("/audits", {
+          audit_id: document.getElementById("auditId").value.trim(),
+          bank_id: bankId,
+          reason: document.getElementById("auditReason").value.trim()
+        });
+        status.textContent = "Audit created.";
+        await loadBank();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function createSanction() {
+      const bankId = bankIdInput.value.trim();
+      const status = document.getElementById("sanctionStatus");
+      if (!bankId) {
+        status.textContent = "Load or enter a bank ID first.";
+        return;
+      }
+      status.textContent = "Issuing sanction...";
+      try {
+        await postJson("/sanctions", {
+          sanction_id: document.getElementById("sanctionId").value.trim(),
+          bank_id: bankId,
+          penalty_amount: Number(document.getElementById("sanctionPenalty").value || 0),
+          reason: document.getElementById("sanctionReason").value.trim()
+        });
+        status.textContent = "Sanction issued.";
+        await loadBank();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function closeAudit() {
+      const auditId = document.getElementById("closeAuditId").value;
+      const status = document.getElementById("closeAuditStatus");
+      if (!auditId) {
+        status.textContent = "Select an open audit first.";
+        return;
+      }
+      if (!window.confirm(`Submit close request for audit ${auditId}? A second admin must approve it.`)) {
+        status.textContent = "Close audit request cancelled.";
+        return;
+      }
+      status.textContent = "Submitting close request...";
+      try {
+        const response = await requestApproval("close_audit", auditId, {
+          findings: document.getElementById("closeFindings").value.trim()
+        });
+        status.textContent = `Approval request #${response.request_id} created for ${auditId}.`;
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function editAudit(auditId) {
+      const nextReason = window.prompt(`Update reason for ${auditId}:`);
+      if (nextReason === null) {
+        return;
+      }
+      statusEl.textContent = `Updating audit ${auditId}...`;
+      try {
+        await postJson(`/audits/${encodeURIComponent(auditId)}/update`, { reason: nextReason });
+        await loadBank();
+        statusEl.textContent = `Audit ${auditId} updated.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function archiveAudit(auditId) {
+      if (!window.confirm(`Submit archive request for audit ${auditId}? A second admin must approve it.`)) {
+        statusEl.textContent = "Audit archive cancelled.";
+        return;
+      }
+      statusEl.textContent = `Submitting archive request for audit ${auditId}...`;
+      try {
+        const response = await requestApproval("archive_audit", auditId, {});
+        statusEl.textContent = `Approval request #${response.request_id} created for ${auditId}.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function editSanction(sanctionId) {
+      const nextPenalty = window.prompt(`Update penalty amount for ${sanctionId}:`);
+      if (nextPenalty === null) {
+        return;
+      }
+      const nextReason = window.prompt(`Update reason for ${sanctionId}:`);
+      if (nextReason === null) {
+        return;
+      }
+      statusEl.textContent = `Updating sanction ${sanctionId}...`;
+      try {
+        await postJson(`/sanctions/${encodeURIComponent(sanctionId)}/update`, {
+          penalty_amount: Number(nextPenalty),
+          reason: nextReason
+        });
+        await loadBank();
+        statusEl.textContent = `Sanction ${sanctionId} updated.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function archiveSanction(sanctionId) {
+      if (!window.confirm(`Submit archive request for sanction ${sanctionId}? A second admin must approve it.`)) {
+        statusEl.textContent = "Sanction archive cancelled.";
+        return;
+      }
+      statusEl.textContent = `Submitting archive request for sanction ${sanctionId}...`;
+      try {
+        const response = await requestApproval("archive_sanction", sanctionId, {});
+        statusEl.textContent = `Approval request #${response.request_id} created for ${sanctionId}.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    function applyQueryBankId() {
+      const params = new URLSearchParams(window.location.search);
+      const bankId = params.get("bank_id");
+      if (bankId) {
+        bankIdInput.value = bankId;
+      }
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadBank);
+    document.getElementById("createTxnBtn").addEventListener("click", createTransaction);
+    document.getElementById("openAuditBtn").addEventListener("click", createAudit);
+    document.getElementById("issueSanctionBtn").addEventListener("click", createSanction);
+    document.getElementById("closeAuditBtn").addEventListener("click", closeAudit);
+    applyQueryBankId();
+  </script>
+</body>
+</html>

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Log Dashboard</title>
+  <style>
+    :root {
+      --paper: #efe7d7;
+      --panel: rgba(255, 251, 243, 0.88);
+      --panel-strong: rgba(255, 249, 238, 0.96);
+      --ink: #1e2527;
+      --muted: #5f6968;
+      --line: #d6c3a7;
+      --rust: #9b4b27;
+      --forest: #2c6458;
+      --gold: #c7962d;
+      --shadow: rgba(44, 31, 10, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(155, 75, 39, 0.18), transparent 24rem),
+        radial-gradient(circle at 90% 20%, rgba(44, 100, 88, 0.16), transparent 28rem),
+        linear-gradient(135deg, #f6f0e5, #e8decf 58%, #ddd0bc);
+    }
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(214, 195, 167, 0.9);
+      background: linear-gradient(145deg, rgba(255, 249, 238, 0.94), rgba(244, 234, 220, 0.78));
+      box-shadow: 0 24px 50px var(--shadow);
+      padding: 28px;
+      display: grid;
+      gap: 10px;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -60px -60px auto;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(44, 100, 88, 0.18), transparent 65%);
+      pointer-events: none;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      max-width: 10ch;
+    }
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      max-width: 54rem;
+      font-size: 1.02rem;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .filters {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+    .stats {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+    .analytics {
+      grid-template-columns: 1.4fr 1fr;
+      align-items: start;
+    }
+    .wide {
+      grid-template-columns: 1fr;
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 14px 30px rgba(44, 31, 10, 0.08);
+      backdrop-filter: blur(8px);
+      padding: 16px;
+    }
+    .metric {
+      background: linear-gradient(180deg, rgba(255, 252, 246, 0.95), rgba(244, 235, 224, 0.92));
+    }
+    .metric-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .metric-value {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      margin-top: 8px;
+      line-height: 0.95;
+    }
+    .metric-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font: inherit;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      border: 0;
+      padding: 12px 14px;
+      font: inherit;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .primary { background: var(--rust); color: #fff7f0; }
+    .secondary { background: var(--forest); color: #eefdf8; }
+    .ghost { background: var(--gold); color: #25180a; }
+    .status {
+      min-height: 1.4rem;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .chart {
+      display: grid;
+      gap: 12px;
+    }
+    .bar-chart {
+      display: grid;
+      gap: 10px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 130px 1fr 52px;
+      gap: 10px;
+      align-items: center;
+    }
+    .bar-label {
+      font-size: 0.88rem;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .bar-track {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(214, 195, 167, 0.6);
+      overflow: hidden;
+    }
+    .bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--forest), var(--gold));
+    }
+    .bar-value {
+      text-align: right;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .timeline {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      min-height: 180px;
+      padding-top: 10px;
+    }
+    .timeline-col {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+      align-items: end;
+    }
+    .timeline-bar {
+      border-radius: 10px 10px 0 0;
+      min-height: 4px;
+      background: linear-gradient(180deg, var(--rust), var(--gold));
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+    }
+    .timeline-label {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.2;
+    }
+    .timeline-value {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--ink);
+    }
+    .table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 0.94rem;
+    }
+    th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    code {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.8rem;
+      color: #3d3123;
+    }
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.86);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border: 1px solid rgba(155, 75, 39, 0.18);
+      background: rgba(155, 75, 39, 0.08);
+      color: var(--rust);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .badge-strong {
+      background: rgba(155, 75, 39, 0.14);
+      border-color: rgba(155, 75, 39, 0.28);
+    }
+    .approval-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .refresh-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .refresh-indicator {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+    }
+    .refresh-indicator strong {
+      color: var(--forest);
+    }
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      color: var(--ink);
+      padding: 8px 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--forest);
+      color: #eefdf8;
+      border-color: rgba(44, 100, 88, 0.35);
+    }
+    .approval-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .mini-metric {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.65);
+      padding: 10px 12px;
+    }
+    .mini-metric-label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .mini-metric-value {
+      margin-top: 6px;
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    @media (max-width: 960px) {
+      .analytics { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      th:nth-child(1), td:nth-child(1) { display: none; }
+      .bar-row { grid-template-columns: 90px 1fr 38px; }
+      .wrap { padding-left: 12px; padding-right: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <span class="badge">Admin Monitoring</span>
+      <h1>Reserve Audit Log Console</h1>
+      <p class="sub">A live oversight board for admin-only operational logs. Filter activity, inspect actor behavior, monitor recent event volume, and export the current slice as CSV with the same bearer token used for the API.</p>
+    </section>
+
+    <section class="grid filters">
+      <div class="card">
+        <label for="token">Bearer Token</label>
+        <input id="token" type="password" placeholder="Paste admin token">
+      </div>
+      <div class="card">
+        <label for="actor">Actor</label>
+        <input id="actor" type="text" placeholder="admin or system">
+      </div>
+      <div class="card">
+        <label for="action">Action</label>
+        <input id="action" type="text" placeholder="login, logout, sanction_issued">
+      </div>
+      <div class="card">
+        <label for="limit">Limit</label>
+        <input id="limit" type="number" value="20" min="1" max="500">
+      </div>
+      <div class="card">
+        <label for="offset">Offset</label>
+        <input id="offset" type="number" value="0" min="0">
+      </div>
+      <div class="card">
+        <label>Actions</label>
+        <div class="actions">
+          <button class="primary" id="loadBtn">Load Logs</button>
+          <button class="secondary" id="csvBtn">Export CSV</button>
+          <button class="ghost" id="clearBtn">Clear Filters</button>
+        </div>
+        <div class="refresh-row">
+          <button class="ghost" id="autoRefreshBtn">Auto Refresh: Off</button>
+          <div class="refresh-indicator" id="refreshIndicator">Polling <strong>disabled</strong></div>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+    </section>
+
+    <section class="grid stats">
+      <div class="card metric">
+        <div class="metric-label">Loaded Entries</div>
+        <div class="metric-value" id="metricTotal">0</div>
+        <div class="metric-note">Current log rows in the viewport.</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-label">Unique Actors</div>
+        <div class="metric-value" id="metricActors">0</div>
+        <div class="metric-note">Distinct users or system emitters.</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-label">Unique Actions</div>
+        <div class="metric-value" id="metricActions">0</div>
+        <div class="metric-note">Different event types in this slice.</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-label">Most Frequent</div>
+        <div class="metric-value" id="metricTopAction">-</div>
+        <div class="metric-note">Top action inside the current filter result.</div>
+      </div>
+    </section>
+
+    <section class="grid analytics">
+      <div class="card">
+        <h2 class="section-title">Action Volume</h2>
+        <div class="chart">
+          <div class="timeline" id="timelineChart"></div>
+          <div class="status" id="timelineStatus">Load logs to visualize action volume by hour.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Actor Breakdown</h2>
+        <div class="bar-chart" id="actorChart">
+          <div class="status">Load logs to compare actor activity.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid wide">
+      <div class="card">
+        <h2 class="section-title">Pending Approvals</h2>
+        <div class="approval-toolbar">
+          <span class="badge badge-strong" id="pendingBadge">Pending: 0</span>
+          <button class="ghost" id="loadApprovalsBtn">Load Approvals</button>
+          <button class="chip active" data-approval-filter="pending">Pending</button>
+          <button class="chip" data-approval-filter="approved">Approved</button>
+          <button class="chip" data-approval-filter="rejected">Rejected</button>
+          <button class="chip" data-approval-filter="all">All</button>
+        </div>
+        <div class="approval-stats">
+          <div class="mini-metric">
+            <div class="mini-metric-label">Pending</div>
+            <div class="mini-metric-value" id="approvalPendingCount">0</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-metric-label">Approved</div>
+            <div class="mini-metric-value" id="approvalApprovedCount">0</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-metric-label">Rejected</div>
+            <div class="mini-metric-value" id="approvalRejectedCount">0</div>
+          </div>
+        </div>
+        <div class="status" id="approvalStatus">Load approvals to review pending high-impact actions.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requested By</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="approvalBody">
+              <tr><td colspan="6">No approvals loaded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2 class="section-title">Recent Entries</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="5">No logs loaded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tokenInput = document.getElementById("token");
+    const actorInput = document.getElementById("actor");
+    const actionInput = document.getElementById("action");
+    const limitInput = document.getElementById("limit");
+    const offsetInput = document.getElementById("offset");
+    const statusEl = document.getElementById("status");
+    const logBody = document.getElementById("logBody");
+    const actorChart = document.getElementById("actorChart");
+    const timelineChart = document.getElementById("timelineChart");
+    const timelineStatus = document.getElementById("timelineStatus");
+    const approvalBody = document.getElementById("approvalBody");
+    const approvalStatus = document.getElementById("approvalStatus");
+    const pendingBadge = document.getElementById("pendingBadge");
+    const approvalPendingCount = document.getElementById("approvalPendingCount");
+    const approvalApprovedCount = document.getElementById("approvalApprovedCount");
+    const approvalRejectedCount = document.getElementById("approvalRejectedCount");
+    const metricTotal = document.getElementById("metricTotal");
+    const metricActors = document.getElementById("metricActors");
+    const metricActions = document.getElementById("metricActions");
+    const metricTopAction = document.getElementById("metricTopAction");
+    const autoRefreshBtn = document.getElementById("autoRefreshBtn");
+    const refreshIndicator = document.getElementById("refreshIndicator");
+    let approvalFilter = "pending";
+    let autoRefreshTimer = null;
+    const autoRefreshIntervalMs = 15000;
+
+    function buildParams() {
+      const params = new URLSearchParams();
+      if (actorInput.value.trim()) params.set("actor", actorInput.value.trim());
+      if (actionInput.value.trim()) params.set("action", actionInput.value.trim());
+      params.set("limit", limitInput.value || "20");
+      params.set("offset", offsetInput.value || "0");
+      return params.toString();
+    }
+
+    function authHeaders() {
+      return {
+        "Authorization": `Bearer ${tokenInput.value.trim()}`
+      };
+    }
+
+    function safeJson(value) {
+      return JSON.stringify(value, null, 2)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    async function loadLogs() {
+      statusEl.textContent = "Loading logs...";
+      try {
+        const response = await fetch(`/logs?${buildParams()}`, { headers: authHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        renderLogs(data);
+        renderStats(data);
+        renderActorChart(data);
+        renderTimeline(data);
+        statusEl.textContent = `Loaded ${data.length} log entries.`;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    function renderLogs(logs) {
+      if (!logs.length) {
+        logBody.innerHTML = '<tr><td colspan="5">No logs match the current filter.</td></tr>';
+        return;
+      }
+      logBody.innerHTML = logs.map((item) => `
+        <tr>
+          <td><span class="pill">${item.id}</span></td>
+          <td>${item.timestamp}</td>
+          <td>${item.actor}</td>
+          <td>${item.action}</td>
+          <td><code>${safeJson(item.details)}</code></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderStats(logs) {
+      metricTotal.textContent = String(logs.length);
+      metricActors.textContent = String(new Set(logs.map((item) => item.actor)).size);
+      metricActions.textContent = String(new Set(logs.map((item) => item.action)).size);
+      const counts = countBy(logs, (item) => item.action);
+      const topAction = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      metricTopAction.textContent = topAction ? `${topAction[0]} (${topAction[1]})` : "-";
+    }
+
+    function renderActorChart(logs) {
+      const counts = countBy(logs, (item) => item.actor);
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      if (!entries.length) {
+        actorChart.innerHTML = '<div class="status">Load logs to compare actor activity.</div>';
+        return;
+      }
+      const max = entries[0][1] || 1;
+      actorChart.innerHTML = entries.map(([label, value]) => `
+        <div class="bar-row">
+          <div class="bar-label">${label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(value / max) * 100}%"></div></div>
+          <div class="bar-value">${value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderTimeline(logs) {
+      const byHour = {};
+      for (const item of logs) {
+        const date = new Date(item.timestamp);
+        if (Number.isNaN(date.getTime())) continue;
+        const key = `${date.getUTCMonth() + 1}/${date.getUTCDate()} ${String(date.getUTCHours()).padStart(2, "0")}:00`;
+        byHour[key] = (byHour[key] || 0) + 1;
+      }
+      const entries = Object.entries(byHour).slice(0, 8).reverse();
+      if (!entries.length) {
+        timelineChart.innerHTML = "";
+        timelineStatus.textContent = "Load logs to visualize action volume by hour.";
+        return;
+      }
+      const max = Math.max(...entries.map(([, value]) => value), 1);
+      timelineChart.innerHTML = entries.map(([label, value]) => `
+        <div class="timeline-col">
+          <div class="timeline-value">${value}</div>
+          <div class="timeline-bar" style="height:${Math.max(10, (value / max) * 140)}px"></div>
+          <div class="timeline-label">${label}</div>
+        </div>
+      `).join("");
+      timelineStatus.textContent = `Showing ${entries.length} hourly buckets from the current result set.`;
+    }
+
+    function countBy(items, selector) {
+      return items.reduce((acc, item) => {
+        const key = selector(item) || "unknown";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function exportCsv() {
+      if (!tokenInput.value.trim()) {
+        statusEl.textContent = "Bearer token is required.";
+        return;
+      }
+      const url = `/logs/export.csv?${buildParams()}`;
+      fetch(url, { headers: authHeaders() })
+        .then(async (response) => {
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Export failed");
+          }
+          return response.blob();
+        })
+        .then((blob) => {
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "system_logs.csv";
+          link.click();
+          URL.revokeObjectURL(link.href);
+          statusEl.textContent = "CSV export ready.";
+        })
+        .catch((error) => {
+          statusEl.textContent = error.message;
+        });
+    }
+
+    async function loadApprovals() {
+      approvalStatus.textContent = "Loading approvals...";
+      try {
+        const statusQuery = approvalFilter === "all" ? "" : `?status=${approvalFilter}&limit=50`;
+        const response = await fetch(`/approvals${statusQuery}`, { headers: authHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        renderApprovals(data);
+        approvalStatus.textContent = `Loaded ${data.length} ${approvalFilter === "all" ? "" : approvalFilter + " "}approvals.`;
+        await refreshApprovalCounts();
+      } catch (error) {
+        approvalStatus.textContent = error.message;
+      }
+    }
+
+    async function refreshApprovalCounts() {
+      const statuses = ["pending", "approved", "rejected"];
+      const counts = { pending: 0, approved: 0, rejected: 0 };
+      for (const status of statuses) {
+        const response = await fetch(`/approvals?status=${status}&limit=200`, { headers: authHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        counts[status] = data.length;
+      }
+      approvalPendingCount.textContent = String(counts.pending);
+      approvalApprovedCount.textContent = String(counts.approved);
+      approvalRejectedCount.textContent = String(counts.rejected);
+      pendingBadge.textContent = `Pending: ${counts.pending}`;
+    }
+
+    function renderApprovals(items) {
+      if (!items.length) {
+        approvalBody.innerHTML = '<tr><td colspan="6">No pending approvals.</td></tr>';
+        return;
+      }
+      approvalBody.innerHTML = items.map((item) => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.requested_by}</td>
+          <td>${item.action_type}</td>
+          <td>${item.target_id}</td>
+          <td>${item.status}</td>
+          <td>
+            <button data-approve="${item.id}" style="margin-top:0;">Approve</button>
+            <button data-reject="${item.id}" style="margin-top:0;">Reject</button>
+          </td>
+        </tr>
+      `).join("");
+      approvalBody.querySelectorAll("[data-approve]").forEach((button) => {
+        button.addEventListener("click", () => decideApproval(button.dataset.approve, "approve"));
+      });
+      approvalBody.querySelectorAll("[data-reject]").forEach((button) => {
+        button.addEventListener("click", () => decideApproval(button.dataset.reject, "reject"));
+      });
+    }
+
+    async function decideApproval(id, decision) {
+      const note = window.prompt(`Optional note for ${decision} request #${id}:`) ?? "";
+      approvalStatus.textContent = `${decision === "approve" ? "Approving" : "Rejecting"} request #${id}...`;
+      try {
+        const response = await fetch(`/approvals/${id}/${decision}`, {
+          method: "POST",
+          headers: {
+            ...authHeaders(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ decision_note: note })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        approvalStatus.textContent = `Request #${id} ${decision}d.`;
+        await loadApprovals();
+        await loadLogs();
+      } catch (error) {
+        approvalStatus.textContent = error.message;
+      }
+    }
+
+    function clearFilters() {
+      actorInput.value = "";
+      actionInput.value = "";
+      limitInput.value = "20";
+      offsetInput.value = "0";
+      statusEl.textContent = "Filters cleared.";
+    }
+
+    async function refreshDashboard() {
+      if (!tokenInput.value.trim()) {
+        statusEl.textContent = "Bearer token is required.";
+        approvalStatus.textContent = "Bearer token is required.";
+        return;
+      }
+      await Promise.all([loadLogs(), loadApprovals()]);
+    }
+
+    function updateAutoRefreshUi() {
+      const enabled = autoRefreshTimer !== null;
+      autoRefreshBtn.textContent = `Auto Refresh: ${enabled ? "On" : "Off"}`;
+      refreshIndicator.innerHTML = enabled
+        ? `Polling <strong>every ${autoRefreshIntervalMs / 1000} seconds</strong>`
+        : 'Polling <strong>disabled</strong>';
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer !== null) {
+        window.clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      updateAutoRefreshUi();
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoRefreshTimer = window.setInterval(() => {
+        if (!tokenInput.value.trim()) {
+          stopAutoRefresh();
+          statusEl.textContent = "Auto refresh stopped because the bearer token is empty.";
+          return;
+        }
+        refreshDashboard();
+      }, autoRefreshIntervalMs);
+      updateAutoRefreshUi();
+    }
+
+    function toggleAutoRefresh() {
+      if (autoRefreshTimer !== null) {
+        stopAutoRefresh();
+        statusEl.textContent = "Auto refresh disabled.";
+        return;
+      }
+      if (!tokenInput.value.trim()) {
+        statusEl.textContent = "Paste an admin bearer token before enabling auto refresh.";
+        return;
+      }
+      startAutoRefresh();
+      statusEl.textContent = `Auto refresh enabled every ${autoRefreshIntervalMs / 1000} seconds.`;
+      refreshDashboard();
+    }
+
+    function setApprovalFilter(nextFilter) {
+      approvalFilter = nextFilter;
+      document.querySelectorAll("[data-approval-filter]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.approvalFilter === nextFilter);
+      });
+      loadApprovals();
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadLogs);
+    document.getElementById("csvBtn").addEventListener("click", exportCsv);
+    document.getElementById("clearBtn").addEventListener("click", clearFilters);
+    document.getElementById("loadApprovalsBtn").addEventListener("click", loadApprovals);
+    autoRefreshBtn.addEventListener("click", toggleAutoRefresh);
+    document.querySelectorAll("[data-approval-filter]").forEach((button) => {
+      button.addEventListener("click", () => setApprovalFilter(button.dataset.approvalFilter));
+    });
+    updateAutoRefreshUi();
+  </script>
+</body>
+</html>
